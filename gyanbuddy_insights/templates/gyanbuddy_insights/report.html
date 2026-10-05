@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><body style="font-family:Arial,sans-serif;color:#172b4d;line-height:1.6;max-width:760px;margin:auto;padding:24px">
+<h1>GyanBuddy learning reports</h1>
+<p>{{ role|title }} update</p>
+{% if role != "parent" %}<p><strong>Overall score for included students: {{ average }}%</strong></p>{% endif %}
+{% for item in items %}<section style="border-top:1px solid #ddd;padding:20px 0">
+<h2>{{ item.metrics.student_name }}</h2>
+<p>{{ item.metrics.class_name }} {{ item.metrics.section }} · Overall score: <strong>{{ item.metrics.overall_accuracy_pct }}%</strong></p>
+<h3>{{ item.insight.headline }}</h3><p>{{ item.insight.summary }}</p>
+<p><strong>Strengths:</strong> {{ item.insight.strengths }}</p><p><strong>Focus:</strong> {{ item.insight.focus }}</p>
+<h3>Suggested actions</h3><ul>{% for action in item.insight.actions %}<li>{{ action }}</li>{% endfor %}</ul>
+<p style="color:#666;font-size:12px">{% if item.source == "rules" %}Rule-based analysis{% else %}AI-assisted analysis{% endif %}</p>
+</section>{% endfor %}<p style="font-size:12px;color:#666">Reference: {{ batch_id }}</p></body></html>

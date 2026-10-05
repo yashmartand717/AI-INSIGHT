@@ -1,0 +1,13 @@
+SECRET_KEY = "isolated-tests-only"
+INSTALLED_APPS = ["django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions", "rest_framework", "gyanbuddy_insights"]
+DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
+ROOT_URLCONF = "gyanbuddy_insights.urls"
+USE_TZ = True
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "APP_DIRS": True}]
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+DEFAULT_FROM_EMAIL = "reports@example.test"
+INSIGHTS_PROVIDER = "rules"
+INSIGHTS_ACCESS_ADAPTER = "integration_tests.test_integration.TestAccess"
+REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.BasicAuthentication"]}
+CELERY_TASK_ALWAYS_EAGER = True

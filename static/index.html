@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GyanBuddy AI Insight</title>
+  <meta name="description" content="Simple, straightforward academic insights for Parents, Teachers, and Principals powered by GyanBuddy.">
+
+  <!-- Modern Clean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <!-- Clean Top Bar -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">🎓</span>
+        <div class="brand-info">
+          <h2>GyanBuddy</h2>
+          <span>AI Insight Tool</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-links">
+        <button id="nav-btn-parent" class="nav-link active" onclick="switchTab('parent')">
+          Parent Report
+        </button>
+        <button id="nav-btn-teacher" class="nav-link" onclick="switchTab('teacher')">
+          Teacher View
+        </button>
+        <button id="nav-btn-principal" class="nav-link" onclick="switchTab('principal')">
+          Principal View
+        </button>
+        <button id="nav-btn-cost" class="nav-link" onclick="switchTab('cost')">
+          Cost & Speed
+        </button>
+        <button id="nav-btn-email" class="nav-link" onclick="switchTab('email')">
+          Email Integration
+        </button>
+      </nav>
+
+      <!-- Right Actions: Upload CSV & Status -->
+      <div class="header-actions">
+        <!-- Hidden File Input -->
+        <input type="file" id="csv-file-input" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleFileUpload(event)">
+
+        <button class="btn btn-outline" onclick="document.getElementById('csv-file-input').click()">
+          📂 Upload Test CSV
+        </button>
+        <a href="/api/download-template" download class="btn-link" title="Download reference CSV template">
+          Sample CSV
+        </a>
+
+        <!-- Active Model Pill -->
+        <div class="status-pill" id="status-pill" title="Configured via .env">
+          <span class="status-dot"></span>
+          <span id="provider-name-display">Checking AI...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Upload Feedback Notification (Hidden by default) -->
+  <div id="upload-toast" class="upload-toast"></div>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- ========================================== -->
+    <!-- 1. PARENT REPORT VIEW (DEFAULT)            -->
+    <!-- ========================================== -->
+    <section id="tab-panel-parent" class="tab-content active">
+
+      <!-- Student Selection Bar -->
+      <div class="selection-bar">
+        <div class="student-select-wrapper">
+          <label for="student-selector">Viewing Student:</label>
+          <select id="student-selector" class="clean-select" onchange="loadParentReport(this.value)">
+            <option value="STU101">Abhishek Sharma (Class 9-A)</option>
+          </select>
+        </div>
+
+        <div class="student-meta-pills">
+          <span id="parent-class-pill" class="pill pill-muted">Class 9-A • Roll 1</span>
+          <span id="parent-accuracy-pill" class="pill pill-warning">Accuracy: 60%</span>
+          <button class="btn btn-icon" onclick="loadParentReport()" title="Regenerate Report">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="two-col-layout">
+
+        <!-- Left: Insight & Home Action Plan -->
+        <div class="main-column">
+
+          <!-- Key Insight Card -->
+          <div class="clean-card">
+            <h3 id="parent-headline" class="insight-headline">
+              Abhishek's Learning Pulse: Strong in Math, Action Needed in Gravitation
+            </h3>
+            <p id="parent-summary-text" class="insight-paragraph">
+              Loading AI insight...
+            </p>
+
+            <!-- Focus Area Highlight -->
+            <div id="parent-focus-box" class="focus-alert">
+              <div class="focus-alert-header">
+                <strong id="parent-focus-title">⚠️ Needs Attention: Gravitation (Science)</strong>
+                <span id="parent-focus-score" class="score-tag tag-danger">2/10 Correct (20%)</span>
+              </div>
+              <p id="parent-focus-desc" class="focus-alert-body">
+                Abhishek struggled with numerical problem-solving and universal constant formulas.
+              </p>
+            </div>
+
+            <!-- Celebrated Strength -->
+            <div class="strength-box">
+              <span class="strength-icon">🌟</span>
+              <div>
+                <strong>Strong Performance:</strong>
+                <span id="parent-strength-text">Mathematics - Linear Equations in Two Variables (80%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Home Action Plan Card -->
+          <div class="clean-card">
+            <h4 class="card-subtitle">💡 3 Action Steps for Home</h4>
+            <ol id="parent-action-list" class="simple-steps-list">
+              <!-- Populated via JS -->
+            </ol>
+          </div>
+
+          <!-- Test Scores Table -->
+          <div class="clean-card">
+            <h4 class="card-subtitle">📊 Recent Test Results</h4>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Chapter</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="parent-test-table-body">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- Right: Instant WhatsApp Notice -->
+        <div class="side-column">
+          <div class="clean-card whatsapp-card">
+            <div class="whatsapp-card-header">
+              <span class="wa-badge">WhatsApp Notice</span>
+              <span class="wa-sub">Ready to send to Parent</span>
+            </div>
+
+            <div id="whatsapp-message-bubble" class="whatsapp-preview-box">
+              Loading message...
+            </div>
+
+            <button id="btn-copy-whatsapp" class="btn btn-whatsapp" onclick="copyWhatsAppMessage()">
+              📋 Copy WhatsApp Message
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2. TEACHER VIEW                            -->
+    <!-- ========================================== -->
+    <section id="tab-panel-teacher" class="tab-content">
+      <div class="clean-card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3 id="teacher-heading">Class Diagnostic</h3>
+          <span id="teacher-avg-badge" class="pill pill-warning">Class Average: —</span>
+        </div>
+        <label for="teacher-group-selector">Class, section and subject</label>
+        <select id="teacher-group-selector" class="clean-select" onchange="loadTeacherReport()" style="max-width: 100%; margin: 0.5rem 0 1rem;"></select>
+        <p id="teacher-overview-text" class="insight-paragraph">
+          Loading teacher analysis...
+        </p>
+        <p id="teacher-gap-text" style="color: #fca5a5; font-size: 0.9rem; margin-top: 0.5rem;"></p>
+      </div>
+
+      <!-- Remedial Cluster -->
+      <div class="clean-card" style="margin-bottom: 1.5rem;">
+        <h4 class="card-subtitle" style="color: #fca5a5;">👥 Remedial Intervention Group (Score &lt; 50%)</h4>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          <span id="teacher-cluster-description">Choose a class to view its first remedial group.</span>
+        </p>
+        <div id="teacher-student-tags" class="student-chips">
+          <!-- Populated via JS -->
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+          <div>
+            <strong style="color: var(--secondary);">🎯 15-Minute Class Activity:</strong>
+            <span id="teacher-intervention-text"></span>
+          </div>
+          <div>
+            <strong style="color: var(--success);">📝 Homework Worksheet:</strong>
+            <span id="teacher-homework-text"></span>
+          </div>
+          <div>
+            <strong style="color: var(--primary);">🤝 Peer Study Pairing:</strong>
+            <span id="teacher-peer-text"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. PRINCIPAL VIEW                          -->
+    <!-- ========================================== -->
+    <section id="tab-panel-principal" class="tab-content">
+      <div class="clean-card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3>🏫 School Academic Pulse</h3>
+          <span id="principal-score-badge" class="pill pill-success">Overall Score: —</span>
+        </div>
+        <p id="principal-exec-summary" class="insight-paragraph">
+          Loading principal briefing...
+        </p>
+      </div>
+
+      <div class="clean-card">
+        <h4 class="card-subtitle">🚨 Curriculum Bottlenecks</h4>
+        <table class="simple-table" style="margin-bottom: 1.25rem;">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Chapter</th>
+              <th>Average</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody id="principal-bottleneck-body">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+
+        <div style="font-size: 0.9rem; color: var(--text-muted);">
+          <strong style="color: var(--text-main);">Administrative Recommendation:</strong>
+          <span id="principal-teacher-support"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 4. COST & SPEED CALCULATOR                 -->
+    <!-- ========================================== -->
+    <section id="tab-panel-cost" class="tab-content">
+      <div class="clean-card" style="max-width: 650px; margin: 0 auto;">
+        <h3 style="margin-bottom: 0.5rem;">💰 Cloud API Cost & Speed</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          Calculated using Google Gemini Flash API rates.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Student Count:</label>
+            <input type="number" id="sim-student-count" class="clean-input" value="1500" min="10" oninput="recalcCost()">
+          </div>
+          <div>
+            <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Frequency:</label>
+            <select id="sim-frequency" class="clean-select" style="width: 100%;" onchange="recalcCost()">
+              <option value="monthly" selected>Monthly Reports</option>
+              <option value="weekly">Weekly Reports</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); padding: 1.25rem; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Total Monthly Cost (INR):</span>
+            <strong id="calc-cost-inr" style="color: var(--success); font-size: 1.25rem;">₹ 10.38 / month</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Total Monthly Cost (USD):</span>
+            <strong id="calc-cost-usd">$0.12 USD</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Cost Per Student:</span>
+            <strong id="calc-per-student">₹ 0.007 INR</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Server CPU Impact:</span>
+            <strong style="color: var(--success);">&lt; 1% (Zero App Lag)</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <button id="btn-run-batch" class="btn btn-primary" style="width: 100%;" onclick="runSimulatedBatch()">
+            🚀 Test Background Batch Runner
+          </button>
+          <div id="batch-status-box" style="margin-top: 0.75rem; font-size: 0.82rem; color: var(--text-muted); text-align: center;">
+            <span id="batch-progress-text"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-panel-email" class="tab-content">
+      <div class="clean-card">
+        <h3>Email insights from GyanBuddy</h3>
+        <p class="insight-paragraph">Save marks in Django, generate reports in the background, then email everyone with one action in Flutter.</p>
+        <ol style="line-height: 1.9; padding-left: 1.5rem;">
+          <li>Parents receive reports for their linked children.</li>
+          <li>Teachers receive one combined email for their assigned students.</li>
+          <li>Principals receive an overview and individual reports for the students in the upload.</li>
+        </ol>
+        <p style="margin: 1.25rem 0;"><span class="pill pill-warning">Backend connection required</span></p>
+        <p class="insight-paragraph">The Django module and Flutter button are ready to integrate. Your developer must connect GyanBuddy's student relationships, background worker, AI model and email account. This local preview does not send email.</p>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.25rem;">
+          <a class="btn btn-primary" href="/api/integration/package" download>Download developer package</a>
+          <a class="btn btn-outline" href="/api/integration/guide" target="_blank" rel="noopener">Read setup guide</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>GyanBuddy School Management</span> • <span>AI Insight Engine</span>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

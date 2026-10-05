@@ -1,0 +1,529 @@
+/* ==========================================================================
+   GyanBuddy AI Insight - Clean, Minimalist Design System
+   ========================================================================== */
+
+:root {
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --bg-app: #0d1117;
+  --bg-surface: #161b22;
+  --bg-card: #21262d;
+  --border-subtle: #30363d;
+  --border-focus: #58a6ff;
+
+  --primary: #388bfd;
+  --primary-hover: #1f6feb;
+  --success: #238636;
+  --success-text: #3fb950;
+  --warning: #d29922;
+  --warning-text: #e3b341;
+  --danger: #da3633;
+  --danger-text: #f85149;
+  --secondary: #a371f7;
+
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   1. Header
+   ========================================================================== */
+.app-header {
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.65rem 1.5rem;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.brand-icon {
+  font-size: 1.4rem;
+}
+
+.brand-info h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.brand-info span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.35rem;
+  background: var(--bg-app);
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.nav-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-link:hover {
+  color: var(--text-main);
+}
+
+.nav-link.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--success-text);
+}
+
+/* ==========================================================================
+   2. Main Container & Layout
+   ========================================================================== */
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 1.5rem auto 3rem;
+  padding: 0 1.25rem;
+  flex: 1;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 950px) {
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   3. Cards & Components
+   ========================================================================== */
+.clean-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.insight-headline {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 0.65rem;
+  color: #fff;
+}
+
+.insight-paragraph {
+  font-size: 0.95rem;
+  color: #c9d1d9;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+.card-subtitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+/* Focus Alert Box */
+.focus-alert {
+  background: rgba(218, 54, 51, 0.08);
+  border: 1px solid rgba(218, 54, 51, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+}
+
+.focus-alert-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.focus-alert-header strong {
+  font-size: 0.95rem;
+  color: var(--danger-text);
+}
+
+.score-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+}
+
+.tag-danger {
+  background: rgba(218, 54, 51, 0.2);
+  color: var(--danger-text);
+}
+
+.focus-alert-body {
+  font-size: 0.88rem;
+  color: #e6edf3;
+  line-height: 1.5;
+}
+
+/* Strength Highlight */
+.strength-box {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(35, 134, 54, 0.08);
+  border: 1px solid rgba(35, 134, 54, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  color: var(--success-text);
+}
+
+/* Home Action Steps List */
+.simple-steps-list {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.92rem;
+  color: #c9d1d9;
+}
+
+.simple-steps-list li::marker {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Minimal Table */
+.simple-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.simple-table th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.simple-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+.simple-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Student Selector Bar */
+.selection-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.25rem;
+}
+
+.student-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+}
+
+.student-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.pill-muted {
+  background: var(--bg-app);
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+
+.pill-warning {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--warning-text);
+  border-color: rgba(210, 153, 34, 0.3);
+}
+
+.pill-success {
+  background: rgba(35, 134, 54, 0.15);
+  color: var(--success-text);
+  border-color: rgba(35, 134, 54, 0.3);
+}
+
+.pill-danger {
+  background: rgba(218, 54, 51, 0.15);
+  color: var(--danger-text);
+  border-color: rgba(218, 54, 51, 0.3);
+}
+
+/* Student Chips */
+.student-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.student-chip {
+  background: rgba(218, 54, 51, 0.12);
+  border: 1px solid rgba(218, 54, 51, 0.3);
+  color: #fca5a5;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ==========================================
+   4. WhatsApp Card
+   ========================================== */
+.whatsapp-card {
+  border-color: #238636;
+  background: #111a14;
+}
+
+.whatsapp-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.wa-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #3fb950;
+}
+
+.wa-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.whatsapp-preview-box {
+  background: #0d1117;
+  border: 1px solid rgba(35, 134, 54, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.95rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: #e6edf3;
+  min-height: 260px;
+  margin-bottom: 0.85rem;
+}
+
+/* ==========================================
+   5. Buttons & Form Elements
+   ========================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  border-color: var(--border-focus);
+  color: var(--border-focus);
+}
+
+.btn-whatsapp {
+  background: #238636;
+  color: #fff;
+  width: 100%;
+}
+
+.btn-whatsapp:hover {
+  background: #2ea043;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.btn-icon:hover {
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}
+
+.btn-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.clean-select, .clean-input {
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.clean-select:focus, .clean-input:focus {
+  border-color: var(--border-focus);
+}
+
+.upload-toast {
+  display: none;
+  max-width: 1200px;
+  margin: 1rem auto 0;
+  padding: 0.65rem 1.25rem;
+  background: rgba(35, 134, 54, 0.15);
+  border: 1px solid rgba(35, 134, 54, 0.35);
+  border-radius: var(--radius-sm);
+  color: var(--success-text);
+  font-size: 0.88rem;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border-subtle);
+}

@@ -1,0 +1,15 @@
+GyanBuddy learning reports
+Audience: {{ role|title }}
+{% if role != "parent" %}Overall score for the included students: {{ average }}%
+{% endif %}{% for item in items %}
+{{ item.metrics.student_name }} — {{ item.metrics.class_name }} {{ item.metrics.section }}
+Overall score: {{ item.metrics.overall_accuracy_pct }}%
+{{ item.insight.headline }}
+{{ item.insight.summary }}
+Strengths: {{ item.insight.strengths }}
+Focus: {{ item.insight.focus }}
+Suggested actions:
+{% for action in item.insight.actions %}- {{ action }}
+{% endfor %}Source: {% if item.source == "rules" %}Rule-based analysis{% else %}AI-assisted analysis{% endif %}
+{% endfor %}
+Reference: {{ batch_id }}
