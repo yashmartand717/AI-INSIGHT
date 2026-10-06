@@ -112,7 +112,7 @@ class ImportReportTests(unittest.TestCase):
         self.assertEqual(row['class_name'], 'Unspecified class')
         self.assertEqual(row['test_date'], '')
         parent = self.client.get(f"/api/reports/parent/{row['student_id']}").json()
-        self.assertIn('60.0%', parent['ai_insight']['focus_area_explanation'])
+        self.assertIn('60%', parent['ai_insight']['focus_area_explanation'])
         self.assertNotIn('Mrs. Sunita', json.dumps(parent))
 
     def test_batch_blocks_data_replacement(self):

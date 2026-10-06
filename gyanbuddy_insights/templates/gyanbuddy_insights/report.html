@@ -6,7 +6,9 @@
 <h2>{{ item.metrics.student_name }}</h2>
 <p>{{ item.metrics.class_name }} {{ item.metrics.section }} · Overall score: <strong>{{ item.metrics.overall_accuracy_pct }}%</strong></p>
 <h3>{{ item.insight.headline }}</h3><p>{{ item.insight.summary }}</p>
-<p><strong>Strengths:</strong> {{ item.insight.strengths }}</p><p><strong>Focus:</strong> {{ item.insight.focus }}</p>
+<p><strong>What to build on:</strong> {{ item.insight.strengths }}</p><p><strong>Learning priority:</strong> {{ item.insight.focus }}</p>
 <h3>Suggested actions</h3><ul>{% for action in item.insight.actions %}<li>{{ action }}</li>{% endfor %}</ul>
-<p style="color:#666;font-size:12px">{% if item.source == "rules" %}Rule-based analysis{% else %}AI-assisted analysis{% endif %}</p>
+{% if item.insight.follow_up %}<h3>How to check progress</h3><p>{{ item.insight.follow_up }}</p>{% endif %}
+{% if item.insight.evidence_note %}<h3>What this report is based on</h3><p>{{ item.insight.evidence_note }}</p>{% endif %}
+<p style="color:#666;font-size:12px">{% if item.source == "rules" %}Rule-based analysis{% elif item.source == "openai" %}OpenAI-assisted analysis{% elif item.source == "gemini" %}Gemini-assisted analysis{% else %}AI-assisted analysis{% endif %}</p>
 </section>{% endfor %}<p style="font-size:12px;color:#666">Reference: {{ batch_id }}</p></body></html>

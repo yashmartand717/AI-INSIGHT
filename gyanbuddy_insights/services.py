@@ -87,6 +87,38 @@ def publish(batch, user):
         EmailDelivery.objects.bulk_create([EmailDelivery(batch=batch, **item) for item in plan])
         batch.published_at = timezone.now()
         batch.published_by = str(user.pk)
-        batch.save(update_fields=["published_at", "published_by"])
+        batch.publication_error = ""
+        batch.save(update_fields=["published_at", "published_by", "publication_error"])
         wake_worker()
     return batch, True
+
+
+def request_send(batch, user):
+    """Remember the explicit click while analysis finishes; no second click needed."""
+    with transaction.atomic():
+        batch = Batch.objects.select_for_update().get(pk=batch.pk)
+        if batch.published_at:
+            return batch, False
+        recipient_plan(batch)  # Report missing/invalid relationships before accepting.
+        newly_requested = batch.send_requested_at is None
+        if newly_requested:
+            batch.send_requested_at = timezone.now()
+            batch.send_requested_by = str(user.pk)
+        batch.publication_error = ""
+        batch.save(update_fields=["send_requested_at", "send_requested_by", "publication_error"])
+        if batch.reports.exists() and not batch.reports.exclude(state="ready").exists():
+            return publish(batch, user)
+        wake_worker()
+        return batch, newly_requested
+
+
+def email_all_from_database(*, school_id, reporting_id, user):
+    """Read a snapshot from the host DB and queue analysis + audience-specific mail."""
+    with transaction.atomic():
+        records = adapter().marks_for_report(school_id, reporting_id)
+        normalized = Submission.model_validate({"event_id": reporting_id, "records": records}).model_dump(mode="json")["records"]
+        normalized.sort(key=lambda row: row["record_id"])
+        # Repeated clicks on the same scope + marks return the same batch/outbox.
+        digest = hashlib.sha256(json.dumps([reporting_id, normalized], sort_keys=True).encode()).hexdigest()
+        batch, _ = submit_marks(school_id=school_id, payload={"event_id": f"database:{digest}", "records": normalized})
+        return request_send(batch, user)

@@ -116,7 +116,7 @@ async function loadParentReport(studentId) {
     const accPill = document.getElementById("parent-accuracy-pill");
     if (classPill) classPill.textContent = `${metrics.class_name}-${metrics.section}${metrics.roll_no ? ` • Roll ${metrics.roll_no}` : ""}`;
     if (accPill) {
-      accPill.textContent = `Accuracy: ${metrics.overall_accuracy_pct}%`;
+      accPill.textContent = `Overall score: ${metrics.overall_accuracy_pct}%`;
       accPill.className = metrics.overall_accuracy_pct >= 70 ? "pill pill-success" : (metrics.overall_accuracy_pct >= 40 ? "pill pill-warning" : "pill pill-danger");
     }
 
@@ -131,7 +131,7 @@ async function loadParentReport(studentId) {
       const topGap = focus[0];
       focusBox.style.display = "block";
       focusTitle.textContent = `⚠️ Needs Attention: ${topGap.chapter} (${topGap.subject})`;
-      focusScore.textContent = `${topGap.correct}/${topGap.total_questions} Correct (${topGap.score_pct}%)`;
+      focusScore.textContent = `${topGap.correct}/${topGap.total_questions} (${topGap.score_pct}%)`;
       focusDesc.textContent = ai.focus_area_explanation;
     } else {
       focusBox.style.display = "none";
@@ -156,13 +156,18 @@ async function loadParentReport(studentId) {
       }
     }
 
+    for (const field of ["follow_up", "evidence_note"]) {
+      const element = document.getElementById(`parent-${field}`);
+      if (element) { element.textContent = ai[field] || ""; element.parentElement.hidden = !ai[field]; }
+    }
+
     // Recent Test Table
     const tbody = document.getElementById("parent-test-table-body");
     if (tbody) {
       tbody.innerHTML = "";
       metrics.chapter_diagnostics.forEach(test => {
         const tr = document.createElement("tr");
-        let statusBadge = `<span class="pill pill-success">Mastered (${test.score_pct}%)</span>`;
+        let statusBadge = `<span class="pill pill-success">Strong result (${test.score_pct}%)</span>`;
         if (test.mastery_status === "CRITICAL_GAP") {
           statusBadge = `<span class="pill pill-danger">Needs Practice (${test.score_pct}%)</span>`;
         } else if (test.mastery_status === "NEEDS_REVISION") {
@@ -275,7 +280,7 @@ function escapeHTML(value) {
 }
 
 function clearParentReport() {
-  ["parent-headline", "parent-class-pill", "parent-accuracy-pill", "parent-strength-text", "parent-action-list", "parent-test-table-body", "whatsapp-message-bubble"].forEach(id => document.getElementById(id).textContent = "");
+  ["parent-follow_up", "parent-evidence_note", "parent-headline", "parent-class-pill", "parent-accuracy-pill", "parent-strength-text", "parent-action-list", "parent-test-table-body", "whatsapp-message-bubble"].forEach(id => document.getElementById(id).textContent = "");
   document.getElementById("parent-focus-box").style.display = "none";
 }
 

@@ -10,6 +10,8 @@ import json
 import re
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+from engine.product_rules import validate_recommendations
+from engine.report_builder import build_from_metrics, REPORT_VERSION
 
 from engine.analytics import analyze_student, analyze_class_subject, analyze_school_principal
 from engine.prompt_templates import (
@@ -32,7 +34,9 @@ def clean_json_response(raw_text: str) -> Dict[str, Any]:
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-    return json.loads(text.strip())
+    result = json.loads(text.strip())
+    validate_recommendations(result)
+    return result
 
 class AIInsightGenerator:
     def __init__(self):
@@ -41,10 +45,15 @@ class AIInsightGenerator:
         self.active_provider = self._detect_provider()
 
     def _detect_provider(self) -> str:
+        preferred = os.environ.get("INSIGHTS_PROVIDER", "").strip().lower()
+        if preferred == "rules":
+            return "SMART_MOCK"
+        if preferred in ("openai", "gemini"):
+            return preferred.upper()
+        if self.openai_key:
+            return "OPENAI"
         if self.gemini_key:
             return "GEMINI"
-        elif self.openai_key:
-            return "OPENAI"
         return "SMART_MOCK"
 
     def refresh_keys(self, gemini_key: Optional[str] = None, openai_key: Optional[str] = None):
@@ -67,7 +76,7 @@ class AIInsightGenerator:
             "has_gemini_key": bool(self.gemini_key),
             "has_openai_key": bool(self.openai_key),
             "model_name": "Google Gemini Flash (Active)" if self.active_provider == "GEMINI" else (
-                "OpenAI GPT-4o-mini" if self.active_provider == "OPENAI" else "Smart Engine (Add GEMINI_API_KEY in .env)"
+                f"OpenAI {os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')}" if self.active_provider == "OPENAI" else "Smart Engine (Add GEMINI_API_KEY in .env)"
             )
         }
 
@@ -115,9 +124,9 @@ class AIInsightGenerator:
 
     def _call_openai(self, system_prompt: str, user_prompt: str) -> str:
         from openai import OpenAI
-        client = OpenAI(api_key=self.openai_key)
+        client = OpenAI(api_key=self.openai_key, timeout=60.0, max_retries=0)
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -143,6 +152,7 @@ class AIInsightGenerator:
                 return {
                     "source": "Gemini 2.5 Flash Cloud API",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -154,8 +164,9 @@ class AIInsightGenerator:
                 raw_json = self._call_openai(PARENT_SYSTEM_PROMPT, user_msg)
                 ai_data = clean_json_response(raw_json)
                 return {
-                    "source": "OpenAI GPT-4o-mini Cloud API",
+                    "source": f"OpenAI {os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')}",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -165,49 +176,24 @@ class AIInsightGenerator:
         return self._generate_mock_parent_report(metrics)
 
     def _generate_mock_parent_report(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
-        name = metrics["student_name"]
-        focus = (metrics["critical_gaps"] or metrics["needs_revision"])
-        strengths = metrics["strengths"]
-        strength = (
-            f"{strengths[0]['subject']} — {strengths[0]['chapter']}: {strengths[0]['score_pct']}%."
-            if strengths else "No recorded topic has reached the 70% mastery threshold yet."
-        )
-        if focus:
-            topic = focus[0]
-            focus_text = (
-                f"{topic['chapter']} ({topic['subject']}): {topic['correct']:g} out of "
-                f"{topic['total_questions']:g}, or {topic['score_pct']}%. "
-                "Review the missed questions with the teacher to identify what needs practice."
-            )
-            actions = [
-                f"Spend 15 minutes reviewing the textbook examples for {topic['chapter']}.",
-                "Work through a few similar questions and discuss each answer.",
-                "Ask the subject teacher which skills to practise next.",
-            ]
-        else:
-            focus_text = "All recorded topics meet the 70% mastery threshold. Continue regular revision."
-            actions = [
-                "Review the topics covered in the latest tests.",
-                "Try a few more challenging textbook questions.",
-                "Ask the subject teacher about the next learning goal.",
-            ]
-        summary = (
-            f"Across {metrics['total_tests_taken']} recorded test rows, {name}'s overall "
-            f"score is {metrics['overall_accuracy_pct']}%."
-        )
+        report = build_from_metrics(metrics)["insights"]["parent"]
         return {
-            "source": "Smart Engine (Offline Demonstration)",
+            "source": "Rule-based analysis (Offline)",
+            "report_version": REPORT_VERSION,
             "metrics": metrics,
             "ai_insight": {
-                "headline": f"{name}'s Learning Progress",
-                "overall_summary": summary,
-                "strength_highlight": strength,
-                "focus_area_explanation": focus_text,
-                "action_plan_for_home": actions,
+                "headline": report["headline"],
+                "overall_summary": report["summary"],
+                "strength_highlight": report["strengths"],
+                "focus_area_explanation": report["focus"],
+                "action_plan_for_home": report["actions"],
+                "follow_up": report["follow_up"],
+                "evidence_note": report["evidence_note"],
                 "whatsapp_message": (
-                    f"Dear Parent, here is {name}'s learning update.\n\n{summary}\n"
-                    f"Strength: {strength}\nFocus: {focus_text}\n\n"
-                    f"Suggested home activity: {actions[0]}\nAcademic Team, GyanBuddy"
+                    f"Dear Parent, {report['summary']}\n\n"
+                    f"What to build on: {report['strengths']}\n"
+                    f"Next step: {report['actions'][0]}\n{report['follow_up']}\n"
+                    f"{report['evidence_note']}\nAcademic Team, GyanBuddy"
                 ),
             },
         }
@@ -227,6 +213,7 @@ class AIInsightGenerator:
                 return {
                     "source": "Gemini 2.5 Flash Cloud API",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -238,8 +225,9 @@ class AIInsightGenerator:
                 raw_json = self._call_openai(TEACHER_SYSTEM_PROMPT, user_msg)
                 ai_data = clean_json_response(raw_json)
                 return {
-                    "source": "OpenAI GPT-4o-mini Cloud API",
+                    "source": f"OpenAI {os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')}",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -253,26 +241,29 @@ class AIInsightGenerator:
         cluster = clusters[0] if clusters else None
         chapter = cluster["chapter"] if cluster else "the recorded topics"
         return {
-            "source": "Smart Engine (Offline Demonstration)",
+            "source": "Rule-based analysis (Offline)",
             "metrics": metrics,
             "ai_insight": {
                 "subject_class_overview": (
-                    f"{metrics['class_name']}-{metrics['section']} recorded an average of "
+                    f"{metrics['class_name']}-{metrics['section']} has a weighted score of "
                     f"{metrics['class_average_pct']}% in {metrics['subject']} across "
-                    f"{metrics['total_test_attempts']} test rows."
+                    f"{metrics['total_test_attempts']} submitted "
+                    f"{'result' if metrics['total_test_attempts'] == 1 else 'results'}. "
+                    "This covers the uploaded work only; it does not establish a trend or syllabus readiness."
                 ),
                 "critical_learning_gap": (
-                    f"Review missed questions in {chapter} to identify the specific learning gaps."
-                    if cluster else "No recorded scores are below the 50% remedial threshold."
+                    f"{cluster['student_count']} {'student has' if cluster['student_count'] == 1 else 'students have'} an aggregate score below 50% in {chapter}. "
+                    "Review marked answers and ask two diagnostic questions before identifying the cause."
+                    if cluster else "No student-topic aggregate is below 50%. Review individual errors and any topics below 70% before deciding on support or extension."
                 ),
                 "remedial_group_strategy": {
                     "group_name": cluster["cluster_name"] if cluster else "Regular revision",
                     "students_involved": list(dict.fromkeys(s["student_name"] for s in cluster["students"])) if cluster else [],
-                    "targeted_intervention": f"Use a 15-minute guided review of worked examples from {chapter}.",
-                    "recommended_homework": f"Select a short textbook practice set covering {chapter}.",
+                    "targeted_intervention": f"Use 15 minutes to review marked work in {chapter}, model one relevant example, then check three independent responses.",
+                    "recommended_homework": f"Select three textbook questions covering {chapter}; ask students to show their reasoning and note any step where help is needed.",
                 },
                 "peer_learning_pairing": "Choose peer partners after reviewing individual answers and checking understanding.",
-                "action_item_for_next_class": f"Review common errors in {chapter} and check understanding with a short question.",
+                "action_item_for_next_class": f"Review errors in {chapter}; after two practice opportunities, check new independent responses and adjust the support group.",
             },
         }
 
@@ -291,6 +282,7 @@ class AIInsightGenerator:
                 return {
                     "source": "Gemini 2.5 Flash Cloud API",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -302,8 +294,9 @@ class AIInsightGenerator:
                 raw_json = self._call_openai(PRINCIPAL_SYSTEM_PROMPT, user_msg)
                 ai_data = clean_json_response(raw_json)
                 return {
-                    "source": "OpenAI GPT-4o-mini Cloud API",
+                    "source": f"OpenAI {os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')}",
                     "metrics": metrics,
+                    "report_version": REPORT_VERSION,
                     "ai_insight": ai_data
                 }
             except Exception as e:
@@ -315,13 +308,15 @@ class AIInsightGenerator:
     def _generate_mock_principal_report(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         bottlenecks = metrics.get("curriculum_bottlenecks", [])
         return {
-            "source": "Smart Engine (Offline Demonstration)",
+            "source": "Rule-based analysis (Offline)",
             "metrics": metrics,
             "ai_insight": {
                 "executive_summary": (
-                    f"The uploaded records contain {metrics['total_tests_processed']} test rows "
-                    f"across {metrics['total_active_students']} students. The overall score is "
-                    f"{metrics['school_overall_average_pct']}%."
+                    f"The uploaded work covers {metrics['total_active_students']} "
+                    f"{'student' if metrics['total_active_students'] == 1 else 'students'} "
+                    f"and has a weighted score of {metrics['school_overall_average_pct']}%. "
+                    "This describes the supplied results, not a validated measure of school health. "
+                    "Coverage, assessment difficulty and comparable historical results need review before drawing wider conclusions."
                 ),
                 "academic_health_score": round(metrics['school_overall_average_pct']),
                 "top_bottlenecks": [
@@ -329,11 +324,11 @@ class AIInsightGenerator:
                         "subject": item["subject"],
                         "chapter": item["chapter"],
                         "concern": f"The recorded average is {item['average_pct']}%.",
-                        "suggested_administrative_action": "Review missed questions with the subject teacher and plan targeted support.",
+                        "suggested_administrative_action": "Ask the subject teacher to review marked work and assessment difficulty, agree on a support goal, and check independent responses after two practice opportunities.",
                     } for item in bottlenecks
                 ],
                 "teacher_support_recommendations": (
-                    "Review the identified topics with the relevant teachers and agree on a follow-up assessment."
+                    "Agree with the relevant teachers who will provide support and a follow-up date. Review fresh assessment evidence before extending the intervention."
                     if bottlenecks else "No chapter average falls below 50%. Continue monitoring future assessments."
                 ),
                 "parent_community_alignment": "Share individual progress and practical revision suggestions with parents.",

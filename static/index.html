@@ -28,6 +28,7 @@
 
       <!-- Navigation Tabs -->
       <nav class="nav-links">
+        <a class="nav-link" href="/progress" style="text-decoration:none">Progress Dashboard</a>
         <button id="nav-btn-parent" class="nav-link active" onclick="switchTab('parent')">
           Parent Report
         </button>
@@ -87,8 +88,8 @@
         </div>
 
         <div class="student-meta-pills">
-          <span id="parent-class-pill" class="pill pill-muted">Class 9-A • Roll 1</span>
-          <span id="parent-accuracy-pill" class="pill pill-warning">Accuracy: 60%</span>
+          <span id="parent-class-pill" class="pill pill-muted">Student details</span>
+          <span id="parent-accuracy-pill" class="pill pill-warning">Overall score: —</span>
           <button class="btn btn-icon" onclick="loadParentReport()" title="Regenerate Report">🔄 Refresh</button>
         </div>
       </div>
@@ -102,7 +103,7 @@
           <!-- Key Insight Card -->
           <div class="clean-card">
             <h3 id="parent-headline" class="insight-headline">
-              Abhishek's Learning Pulse: Strong in Math, Action Needed in Gravitation
+              Learning report
             </h3>
             <p id="parent-summary-text" class="insight-paragraph">
               Loading AI insight...
@@ -111,11 +112,11 @@
             <!-- Focus Area Highlight -->
             <div id="parent-focus-box" class="focus-alert">
               <div class="focus-alert-header">
-                <strong id="parent-focus-title">⚠️ Needs Attention: Gravitation (Science)</strong>
-                <span id="parent-focus-score" class="score-tag tag-danger">2/10 Correct (20%)</span>
+                <strong id="parent-focus-title">Learning priority</strong>
+                <span id="parent-focus-score" class="score-tag tag-danger"></span>
               </div>
               <p id="parent-focus-desc" class="focus-alert-body">
-                Abhishek struggled with numerical problem-solving and universal constant formulas.
+                Loading the submitted results…
               </p>
             </div>
 
@@ -123,8 +124,8 @@
             <div class="strength-box">
               <span class="strength-icon">🌟</span>
               <div>
-                <strong>Strong Performance:</strong>
-                <span id="parent-strength-text">Mathematics - Linear Equations in Two Variables (80%)</span>
+                <strong>What to build on:</strong>
+                <span id="parent-strength-text">Loading the submitted results…</span>
               </div>
             </div>
           </div>
@@ -137,9 +138,11 @@
             </ol>
           </div>
 
+          <div class="card-subsection" hidden><h4 class="card-subtitle">How to check progress</h4><p id="parent-follow_up"></p></div>
+          <div class="card-subsection" hidden><h4 class="card-subtitle">What this report is based on</h4><p id="parent-evidence_note"></p></div>
           <!-- Test Scores Table -->
           <div class="clean-card">
-            <h4 class="card-subtitle">📊 Recent Test Results</h4>
+            <h4 class="card-subtitle">📊 Submitted Results</h4>
             <table class="simple-table">
               <thead>
                 <tr>

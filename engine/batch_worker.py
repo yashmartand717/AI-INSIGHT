@@ -14,6 +14,7 @@ import json
 import os
 from engine.analytics import load_test_data
 from engine.ai_generator import AIInsightGenerator
+from engine.report_builder import REPORT_VERSION
 
 CACHE_FILE = "data/generated_reports_cache.json"
 
@@ -37,7 +38,8 @@ class BatchWorker:
         if os.path.exists(CACHE_FILE):
             try:
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    return {sid: report for sid, report in json.load(f).items()
+                            if isinstance(report, dict) and report.get("report_version") == REPORT_VERSION}
             except Exception:
                 return {}
         return {}

@@ -9,8 +9,9 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.module_loading import import_string
 from .access import adapter
-from .models import StudentReport, EmailDelivery
+from .models import Batch, StudentReport, EmailDelivery
 from .schema import InsightBundle
+from engine.product_rules import validate_recommendations
 
 
 @shared_task(ignore_result=True)
@@ -22,6 +23,8 @@ def dispatch_pending():
     StudentReport.objects.filter(eligible, attempts__gte=3).update(state="failed", error_code="AttemptsExhausted")
     for pk in StudentReport.objects.filter(eligible, attempts__lt=3).values_list("pk", flat=True)[:500]:
         generate_student.delay(str(pk))
+    for pk in Batch.objects.filter(send_requested_at__isnull=False, published_at__isnull=True, publication_error="").values_list("pk", flat=True)[:500]:
+        finalize_requested_batch(str(pk))
     # SMTP may have accepted a message before a worker died. Never auto-resend it.
     EmailDelivery.objects.filter(state="sending", locked_until__lt=now).update(state="uncertain", error_code="WorkerInterrupted")
     for pk in EmailDelivery.objects.filter(state="pending").values_list("pk", flat=True)[:500]:
@@ -43,10 +46,11 @@ def generate_student(report_id):
         builder = import_string(getattr(settings, "INSIGHTS_GENERATOR", "gyanbuddy_insights.generation.generate"))
         result = builder(report.records)
         InsightBundle.model_validate(result["insights"])
+        validate_recommendations(result["insights"])
         # Metrics are always calculated locally, including for custom generators.
         from engine.analytics import analyze_student
         result["metrics"] = analyze_student(report.student_id, report.records)
-        if result.get("source") not in ("gemini", "rules"):
+        if result.get("source") not in ("gemini", "openai", "rules"):
             raise ValueError("Generator must report its source")
         owned.update(state="ready", result=result, error_code="", locked_until=None)
     except Exception as exc:
@@ -55,6 +59,23 @@ def generate_student(report_id):
             error_code=type(exc).__name__, locked_until=None,
             available_at=timezone.now() + timedelta(minutes=report.attempts),
         )
+    else:
+        finalize_requested_batch(str(report.batch_id))
+
+
+def finalize_requested_batch(batch_id):
+    """Publish only after all reports succeed; Beat recovers interrupted finalization."""
+    from types import SimpleNamespace
+    from .services import publish
+    batch = Batch.objects.get(pk=batch_id)
+    if not batch.send_requested_at or batch.published_at or batch.publication_error:
+        return
+    if not batch.reports.exists() or batch.reports.exclude(state="ready").exists():
+        return
+    try:
+        publish(batch, SimpleNamespace(pk=batch.send_requested_by))
+    except Exception as exc:
+        Batch.objects.filter(pk=batch_id, published_at__isnull=True).update(publication_error=type(exc).__name__)
 
 
 def email_context(delivery):
@@ -70,6 +91,8 @@ def email_context(delivery):
         raise ValueError("A report is missing")
     items = [{"student_id": r.student_id, "metrics": r.result["metrics"],
               "insight": r.result["insights"][delivery.role], "source": r.result["source"]} for r in reports]
+    for item in items:
+        validate_recommendations(item["insight"])
     total = sum(row["total_questions"] for r in reports for row in r.records)
     earned = sum(row["correct"] for r in reports for row in r.records)
     return {"role": delivery.role, "items": items, "average": round(earned / total * 100, 1), "batch_id": str(delivery.batch_id)}

@@ -19,6 +19,14 @@ class AccessAdapter:
         """Return [{email, role, student_ids}] from verified host relationships."""
         raise PermissionDenied("Configure recipient relationships")
 
+    def marks_for_report(self, school_id, reporting_id):
+        """Query authoritative marks for a school-scoped exam/upload/reporting period.
+
+        Return normalized records as accepted by Submission. Never accept marks or
+        email addresses from the client's one-click request.
+        """
+        raise PermissionDenied("Configure the database marks adapter")
+
 
 def adapter():
     path = getattr(settings, "INSIGHTS_ACCESS_ADAPTER", "")

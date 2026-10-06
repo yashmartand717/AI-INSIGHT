@@ -4,7 +4,7 @@ from gyanbuddy_insights.models import Batch
 
 
 class Command(BaseCommand):
-    help = "Retry failed generation after fixing configuration or provider errors. Does not send email."
+    help = "Retry failed generation after fixing configuration or provider errors. Previously requested email publication resumes when all reports are ready."
 
     def add_arguments(self, parser):
         parser.add_argument("batch_id")

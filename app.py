@@ -9,15 +9,26 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
+from contextlib import asynccontextmanager
 
 from engine.analytics import load_test_data, analyze_student, analyze_class_subject, analyze_school_principal, import_and_normalize_csv
 from engine.ai_generator import AIInsightGenerator
 from engine.batch_worker import BatchWorker
+from engine.progress_preview import ProgressPreview
+from gyanbuddy_insights.generation import generate_local, local_configuration
+
+@asynccontextmanager
+async def app_lifespan(application):
+    progress_preview.recover_interrupted()
+    progress_preview.refresh_ready_reports()
+    yield
+    progress_preview.executor.shutdown(wait=True)
 
 app = FastAPI(
     title="GyanBuddy AI Insight Engine",
     description="Automated, cost-efficient academic intelligence for Parents, Teachers, and Principals",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=app_lifespan,
 )
 
 # Mount static directory for the web UI
@@ -25,6 +36,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 generator = AIInsightGenerator()
 batch_worker = BatchWorker(concurrency_limit=5)
+progress_preview = ProgressPreview(recover_interrupted=False, builder=generate_local)
 
 class KeyUpdateRequest(BaseModel):
     gemini_key: Optional[str] = None
@@ -170,6 +182,54 @@ def get_raw_data():
 @app.get("/api/integration/guide")
 def integration_guide():
     return FileResponse("docs/DJANGO_INTEGRATION.md", media_type="text/plain; charset=utf-8")
+
+@app.get("/progress")
+def progress_page():
+    return FileResponse("gyanbuddy_insights/templates/gyanbuddy_insights/dashboard.html")
+
+@app.get("/api/progress/config/")
+def progress_config():
+    config = local_configuration()
+    provider = config["provider"]
+    label = {"openai": "OpenAI", "gemini": "Gemini", "rules": "Rule-based"}.get(provider, "Invalid provider")
+    return {"mode": "local", "can_generate": True, "can_send": False,
+            "provider": provider, "model": config["model"],
+            "description": f"Local preview · {label} reports from your uploaded marks. Email is not connected."}
+
+@app.get("/api/progress/batches/")
+def progress_batches(offset: int = Query(0, ge=0)):
+    return progress_preview.list(offset)
+
+@app.post("/api/progress/batches/", status_code=202)
+def start_progress_batch():
+    try:
+        bid = progress_preview.start(load_test_data())
+        return {k: v for k, v in progress_preview.get(bid).items() if k != "results"}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+@app.get("/api/progress/batches/{batch_id}/")
+def progress_batch(batch_id: str):
+    try:
+        return {k: v for k, v in progress_preview.get(batch_id).items() if k != "results"}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+@app.get("/api/progress/batches/{batch_id}/reports/")
+def progress_reports(batch_id: str, offset: int = Query(0, ge=0)):
+    try:
+        batch = progress_preview.get(batch_id)
+        return {"count": batch["total_students"], "results": batch["results"][offset:offset + 50]}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+@app.get("/api/progress/batches/{batch_id}/emails/")
+def progress_emails(batch_id: str):
+    try:
+        progress_preview.get(batch_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return {"count": 0, "results": [], "message": "Email delivery requires the Django backend connection."}
 
 @app.get("/api/integration/package")
 def integration_package():

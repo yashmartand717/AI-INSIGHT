@@ -10,6 +10,9 @@ class Batch(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
     published_by = models.CharField(max_length=150, blank=True)
+    send_requested_at = models.DateTimeField(null=True, blank=True)
+    send_requested_by = models.CharField(max_length=150, blank=True)
+    publication_error = models.CharField(max_length=100, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["school_id", "event_id"], name="insight_unique_event")]

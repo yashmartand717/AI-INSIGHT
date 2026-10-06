@@ -50,6 +50,11 @@ class Submission(BaseModel):
         return self
 
 
+class DatabaseSendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    reporting_id: Annotated[str, Field(min_length=1, max_length=150)]
+
+
 class Insight(BaseModel):
     model_config = ConfigDict(extra="forbid")
     headline: str = Field(min_length=1, max_length=180)
@@ -57,6 +62,8 @@ class Insight(BaseModel):
     strengths: str = Field(min_length=1, max_length=1000)
     focus: str = Field(min_length=1, max_length=1000)
     actions: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(min_length=1, max_length=3)
+    follow_up: str = Field(default="", max_length=1000)
+    evidence_note: str = Field(default="", max_length=1500)
 
 
 class InsightBundle(BaseModel):
@@ -64,3 +71,16 @@ class InsightBundle(BaseModel):
     parent: Insight
     teacher: Insight
     principal: Insight
+
+
+class GeneratedInsight(Insight):
+    """Cloud output requires all fields; older saved reports remain readable."""
+    follow_up: str = Field(min_length=1, max_length=1000)
+    evidence_note: str = Field(min_length=1, max_length=1500)
+    actions: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(min_length=3, max_length=3)
+
+
+class GeneratedInsightBundle(InsightBundle):
+    parent: GeneratedInsight
+    teacher: GeneratedInsight
+    principal: GeneratedInsight

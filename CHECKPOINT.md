@@ -2,6 +2,18 @@
 
 Updated: 6 October 2026
 
+## Product constraint: no recorded lectures
+
+GyanBuddy has no recorded lectures. All report prompts now state this explicitly and suggest textbooks, written practice, review of mistakes and teacher discussion. Shared output validation rejects recorded/video lesson recommendations in generated prose. Django generation and email preparation both enforce the guard, including saved reports queued before this correction. A blocked saved report should be regenerated using a new batch revision; existing history is not rewritten.
+
+## Progress GUI added
+
+- Local dashboard: `http://localhost:8000/progress`, linked from the report dashboard navigation.
+- Shared standalone HTML/CSS/JS dashboard ships in the Django package at `/api/insights/dashboard/` with authenticated school-scoped history and configuration endpoints.
+- Automatic polling, batch selection and pagination, report progress, per-student status, parent/teacher/principal report previews, recipient lists and email status counters. Django mode includes the one-click publication action.
+- Local mode runs real offline analysis of the uploaded data and keeps batch history in ignored SQLite storage. Local email is explicitly disconnected and cannot send. Interrupted local batches are marked for attention on restart.
+- Browser automation was blocked by the browser policy; visual layout verification remains pending. All 37 tests pass (16 local/API tests and 21 Django tests), and JavaScript syntax is valid. The local app has been restarted with the progress routes. These changes are local until the next GitHub push.
+
 ## Django + Flutter email integration added
 
 User chose email delivery. Built `gyanbuddy_insights`, an installable Django 5.2 app with migrations, database-backed generation jobs, Celery tasks, a transactional email outbox, role-specific templates, tenant-scoped authenticated API endpoints, recovery commands and an audit record for manual delivery reconciliation. One Gemini call produces three report variants per student; offline mode is explicit and labelled. Send publication groups reports by recipient and role. Relationships are resolved in the host adapter and checked again before transmission. Repeated event IDs and send clicks are idempotent.
@@ -38,7 +50,7 @@ Next priority for integration: obtain the GyanBuddy backend path and implement t
 2. Review provider configuration and validate configured Gemini model IDs against official documentation. Model IDs and source labels currently disagree. Make fallback use visible per report and validate generated report schemas. Live AI was not checked in this session.
 3. Verify token pricing and cost assumptions. README and UI still contain historical cost and CPU claims that have not been measured or revalidated.
 4. Repair batch execution: the current loop is sequential despite a semaphore, cache entries are keyed only by student ID, error results can be cached and progress does not include failures. Address dataset consistency and concurrent job startup before enabling larger runs.
-5. Review repeated-test aggregation: teacher chapter counts currently count test rows, and the principal field `critical_gap_students_pct` is computed from test rows. Define whether latest tests, all attempts or unique students are intended.
+5. Repeated-result aggregation now weights all supplied rows by available credit. Teacher chapter counts use unique students; principal critical-gap percentages use each student's aggregate subject score. These are cumulative uploaded results, not latest-test trends.
 6. Harden persistence for interrupted writes and concurrent uploads. Current import validation protects against invalid files, but writing JSON and CSV is not transactional.
 
 ## Local commands
@@ -50,3 +62,28 @@ Next priority for integration: obtain the GyanBuddy backend path and implement t
 - JavaScript syntax: `node --check static/js/app.js`
 
 This directory is a Git repository on `main`, with origin `https://github.com/yashmartand717/AI-INSIGHT.git`. Preserve `.env` and existing data. Credentials, local student data and Excel files are excluded from Git. Scratch scripts under `.system_generated` are support files, not part of the application.
+
+## Report quality corrections — 2026-10-06
+
+- Parent, teacher and principal student reports explain earned/available scores, give constructive evidence-based wording, three audience-specific actions, a follow-up check and explicit evidence limits. No recorded-lecture recommendations.
+- Repeated topics are weighted once for strengths/priorities; class counts and principal percentages count unique students. Row-level submitted results remain available.
+- Dashboard and HTML/plain-text emails display follow-up and evidence sections. Legacy parent reports share the same builder; class/school summaries and all cloud prompts have corresponding guidance.
+- Local ready rule-based previews upgrade from their saved marks at startup, with a SQLite backup before changes. Existing batch IDs and source records are preserved. This does not rewrite published Django reports or resend emails.
+- Report version invalidates older standalone cached reports. Cloud generation has not been tested live.
+
+Verification: 29 standalone tests and 22 Django integration tests pass (51 total), including email text/HTML content, weighted repeated results and saved-report upgrades. Both dashboard scripts pass syntax checks. All 8 saved local student reports (24 audience versions) were refreshed from snapshots with a database backup. Live dashboard/API checks passed on localhost:8000; Kavita's corrected report was confirmed through the reports endpoint. ZIP and wheel rebuilt. Browser visual verification and live cloud generation remain unverified. Current local server PID: 37932.
+
+## OpenAI integration — 2026-10-06
+
+OpenAI now generates all three role reports in one structured Responses API request in the Django worker and local progress workflow. Select INSIGHTS_PROVIDER=openai with server-side OPENAI_API_KEY and OPENAI_MODEL (default gpt-4o-mini). Django accepts INSIGHTS_OPENAI_API_KEY and INSIGHTS_OPENAI_MODEL settings. Keys are not exposed by config endpoints. Model input omits explicit identity fields. Provider refusals, incomplete output, invalid schema and forbidden recommendations fail; the durable Django queue handles retries. The SDK uses 60-second timeout, max_retries=0 and store=False. Cloud schema requires follow-up/evidence sections and exactly three actions. Reports and emails label OpenAI sources. Existing offline previews are preserved; use Analyse uploaded marks for a new AI batch. New SDK dependency is included in integration requirements and packaging. Legacy standalone report provider selection also respects explicit OpenAI configuration.
+
+OpenAI verification: 31 standalone and 31 Django tests pass (62 total). Tests use mocked provider responses and cover source routing, all audience outputs, identity omission, no key exposure, strict SDK schema, refusals/incomplete output, API failures, configuration, report queue and email delivery labels. JavaScript syntax passes. ZIP and wheel rebuilt. No live cloud requests were made. Dashboard HTTP/config checks pass; restarted local server PID 3764.
+
+## Database-driven one-click Gmail delivery — 2026-10-06
+
+- Added AccessAdapter.marks_for_report(school_id, reporting_id) and authenticated POST email-all-reports/. The host adapter queries authoritative marks and linked recipient addresses; the client supplies only a reporting reference. The actual GyanBuddy schema is not available here, so the host must implement these methods using its real models.
+- Identical database snapshots reuse a batch; changed marks produce a new snapshot. Missing recipients roll back initial requests. Batch send intent is durable and generation/periodic dispatcher automatically publishes when all student reports are ready. Duplicate clicks do not create another outbox. Recipient failures during publication are visible and retryable after mapping correction. Relationships are checked before each send.
+- Added migration 0003 for send intent and publication errors. Apply migrations on upgrade. Existing published reports/deliveries are preserved.
+- Added optional Gmail SMTP settings helper (STARTTLS port 587, app password from server environment, 30-second timeout). No recipient passwords or inbox access are needed. Gmail account quotas apply; developer guide includes Google references and Workspace/relay alternatives.
+- Updated Flutter API with analyseAndSend(reportingId), existing send panel, shared progress dashboard, developer guide, README and environment example. Retrying failed generation resumes a previously requested send.
+- Verification: 40 Django tests + 31 standalone tests pass (71 total). One-click end-to-end generation/outbox/memory delivery, repeated clicks, changed marks, tenant rejection, no client recipient overrides, missing/changed recipients, failure recovery and dispatcher recovery are covered. Gmail SMTP transport was mocked; TLS/login/single-recipient routing checked without sending actual mail. Migration drift check and dashboard JavaScript syntax pass. Real GyanBuddy integration, Gmail delivery, Flutter compilation and PostgreSQL concurrency remain unverified.

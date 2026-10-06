@@ -2,6 +2,8 @@
 
 ## Django + Flutter email integration
 
+Open **[Progress Dashboard](http://localhost:8000/progress)** while the local app is running. It shows persistent upload history, report processing, per-student report previews and email status. Local mode analyses current uploaded marks offline; email delivery becomes available in the connected Django dashboard at `/api/insights/dashboard/`.
+
 The installable `gyanbuddy_insights` Django app generates reports after marks are saved and queues grouped, role-specific emails with one publish action. See [the developer guide](docs/DJANGO_INTEGRATION.md) for setup, the marks-save hook, API contract, recipient adapter, Celery, SMTP and Flutter button example.
 
 The standalone dashboard now includes an **Email Integration** tab with the developer package. It does not send mail itself. GyanBuddy's real Django models and mail account still need to be connected.
@@ -75,14 +77,18 @@ flowchart TD
 
 ## 🚀 Quickstart Guide
 
-### 1. Configure Your Gemini API Key
-Keys are managed securely in the local [.env](file:///c:/AI%20INSIGHT/.env) file (which is excluded from Git via [.gitignore](file:///c:/AI%20INSIGHT/.gitignore)):
-```bash
-# In .env
-GEMINI_API_KEY=your_gemini_api_key_here
+### 1. Configure an AI provider
+Store credentials in the server's `.env` file (excluded from Git):
+```dotenv
+INSIGHTS_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 ```
-> The system dynamically auto-detects when you update `.env` without requiring a manual server restart!
-> If no key is set, the system seamlessly runs on the built-in pedagogical Smart Engine for testing.
+Restart the server after changing configuration, then open [Report progress](http://localhost:8000/progress) and click **Analyse uploaded marks**. New reports show their provider and model. The key is never sent to the browser or Flutter app.
+
+For Gemini, use `INSIGHTS_PROVIDER=gemini`, `GEMINI_API_KEY` and `GEMINI_MODEL`. For offline reports, use `INSIGHTS_PROVIDER=rules`. Without an explicit provider, the progress preview selects OpenAI when its key is present, otherwise offline rules. Existing saved reports keep their original source. OpenAI failures in the progress/Django workflow are shown as failures, not replaced by offline reports.
+
+For the Flutter/Django integration, see [provider settings](docs/DJANGO_INTEGRATION.md#openai-or-gemini-configuration). Django settings and worker environment must be configured in the host project.
 
 ### 2. Run the Application
 The environment is pre-configured. Start the server directly:
@@ -126,3 +132,6 @@ c:\AI INSIGHT\
 - `GET /api/cost-calculator?students=1500&frequency=monthly` - Dynamic token & cost simulator
 - `POST /api/batch/run` - Launch asynchronous background batch job
 - `POST /api/settings/keys` - Update API credentials live without restart
+
+### Database-to-email integration
+The Django module supports one-click analysis and sending through `POST /api/insights/email-all-reports/` with a reporting/exam reference. The host access adapter reads marks and verified parent/teacher/principal email relationships directly from GyanBuddy's database. Sending is queued automatically after analysis succeeds. A Gmail SMTP settings helper and Flutter API method are included; see [database and Gmail setup](docs/DJANGO_INTEGRATION.md#one-click-database-marks-to-recipient-emails). Apply the new migrations when updating the module. Host database mapping, sender credentials and live deployment are still required.

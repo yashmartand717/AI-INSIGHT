@@ -6,10 +6,12 @@ Audience: {{ role|title }}
 Overall score: {{ item.metrics.overall_accuracy_pct }}%
 {{ item.insight.headline }}
 {{ item.insight.summary }}
-Strengths: {{ item.insight.strengths }}
-Focus: {{ item.insight.focus }}
+What to build on: {{ item.insight.strengths }}
+Learning priority: {{ item.insight.focus }}
 Suggested actions:
 {% for action in item.insight.actions %}- {{ action }}
-{% endfor %}Source: {% if item.source == "rules" %}Rule-based analysis{% else %}AI-assisted analysis{% endif %}
+{% endfor %}{% if item.insight.follow_up %}How to check progress: {{ item.insight.follow_up }}
+{% endif %}{% if item.insight.evidence_note %}What this report is based on: {{ item.insight.evidence_note }}
+{% endif %}Source: {% if item.source == "rules" %}Rule-based analysis{% elif item.source == "openai" %}OpenAI-assisted analysis{% elif item.source == "gemini" %}Gemini-assisted analysis{% else %}AI-assisted analysis{% endif %}
 {% endfor %}
 Reference: {{ batch_id }}

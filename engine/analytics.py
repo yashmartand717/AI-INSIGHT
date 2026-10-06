@@ -260,13 +260,24 @@ def analyze_student(student_id: str, test_records: List[Dict[str, Any]] = None) 
             "tests_evaluated": data["tests_count"]
         }
 
-    # Sort chapters into critical gaps and strengths
-    critical_gaps = [c for c in chapter_diagnostics if c["mastery_status"] == "CRITICAL_GAP"]
-    needs_revision = [c for c in chapter_diagnostics if c["mastery_status"] == "NEEDS_REVISION"]
-    strengths = [c for c in chapter_diagnostics if c["mastery_status"] == "MASTERED"]
+    # A topic can appear in several rows; classify its weighted aggregate once.
+    topic_totals = {}
+    for row in chapter_diagnostics:
+        item = topic_totals.setdefault((row["subject"], row["chapter"]), {
+            "subject": row["subject"], "chapter": row["chapter"], "correct": 0, "total_questions": 0,
+        })
+        item["correct"] += row["correct"]
+        item["total_questions"] += row["total_questions"]
+    for item in topic_totals.values():
+        item["score_pct"] = round(100 * item["correct"] / item["total_questions"], 1)
+        item["mastery_status"] = classify_mastery(item["score_pct"])
+    critical_gaps = [c for c in topic_totals.values() if c["mastery_status"] == "CRITICAL_GAP"]
+    needs_revision = [c for c in topic_totals.values() if c["mastery_status"] == "NEEDS_REVISION"]
+    strengths = [c for c in topic_totals.values() if c["mastery_status"] == "MASTERED"]
 
     # Sort by urgency
     critical_gaps.sort(key=lambda x: x["score_pct"])
+    needs_revision.sort(key=lambda x: x["score_pct"])
     strengths.sort(key=lambda x: x["score_pct"], reverse=True)
 
     return {
@@ -336,6 +347,19 @@ def analyze_class_subject(class_name: str = "Class 9", section: str = "A", subje
         elif pct >= 70.0:
             chapters_data[chap]["mastered_students"].append(student_info)
 
+    # Count each student once per chapter, weighting repeated rows by available credit.
+    for data in chapters_data.values():
+        students = {}
+        for row in data["student_scores"]:
+            entry = students.setdefault(row["student_id"], {**row, "correct": 0, "total": 0, "subtopic": ""})
+            entry["correct"] += row["correct"]
+            entry["total"] += row["total"]
+        for entry in students.values():
+            entry["score_pct"] = round(100 * entry["correct"] / entry["total"], 1)
+        data["student_scores"] = list(students.values())
+        data["struggling_students"] = [s for s in students.values() if s["score_pct"] < 50]
+        data["mastered_students"] = [s for s in students.values() if s["score_pct"] >= 70]
+
     # Compute averages and build remedial clusters
     chapter_stats = []
     remedial_clusters = []
@@ -357,7 +381,7 @@ def analyze_class_subject(class_name: str = "Class 9", section: str = "A", subje
                 "chapter": chap,
                 "students": data["struggling_students"],
                 "student_count": len(data["struggling_students"]),
-                "recommended_focus": "Numerical formulas, core derivations, and step-by-step problem breakdown"
+                "recommended_focus": "Review marked answers and use short diagnostic questions to identify which skills need practice."
             })
 
     total_q = sum(t["total_questions"] for t in filtered)
@@ -396,23 +420,25 @@ def analyze_school_principal(test_records: List[Dict[str, Any]] = None) -> Dict[
     for t in test_records:
         subj = t["subject"]
         if subj not in subjects_summary:
-            subjects_summary[subj] = {"total_q": 0, "correct_q": 0, "attempts": 0, "critical_count": 0}
+            subjects_summary[subj] = {"total_q": 0, "correct_q": 0, "attempts": 0, "students": {}}
         subjects_summary[subj]["total_q"] += t["total_questions"]
         subjects_summary[subj]["correct_q"] += t["correct"]
         subjects_summary[subj]["attempts"] += 1
-        pct = (t["correct"] / t["total_questions"]) * 100
-        if pct < 40.0:
-            subjects_summary[subj]["critical_count"] += 1
+        student = subjects_summary[subj]["students"].setdefault(t["student_id"], {"correct": 0, "total": 0})
+        student["correct"] += t["correct"]
+        student["total"] += t["total_questions"]
 
     subject_breakdown = []
     for subj, d in subjects_summary.items():
         avg = round((d["correct_q"] / d["total_q"]) * 100, 1)
-        critical_pct = round((d["critical_count"] / d["attempts"]) * 100, 1)
+        critical_count = sum(100 * s["correct"] / s["total"] < 40 for s in d["students"].values())
+        critical_pct = round(100 * critical_count / len(d["students"]), 1)
         subject_breakdown.append({
             "subject": subj,
             "average_pct": avg,
             "attempts": d["attempts"],
             "critical_gap_students_pct": critical_pct,
+            "students_evaluated": len(d["students"]),
             "status": "RED" if critical_pct > 35 else ("YELLOW" if critical_pct > 15 else "GREEN")
         })
 
