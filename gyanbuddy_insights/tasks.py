@@ -1,7 +1,9 @@
 """Durable database queue with Celery wakeups and expiring generation claims."""
+import io
 import uuid
 from datetime import timedelta
 from celery import shared_task
+from xhtml2pdf import pisa
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import F, Q
@@ -98,6 +100,13 @@ def email_context(delivery):
     return {"role": delivery.role, "items": items, "average": round(earned / total * 100, 1), "batch_id": str(delivery.batch_id)}
 
 
+def render_pdf(html):
+    out = io.BytesIO()
+    if pisa.CreatePDF(html, dest=out, encoding="utf-8").err:
+        raise RuntimeError("PDF rendering failed")
+    return out.getvalue()
+
+
 @shared_task(ignore_result=True, acks_late=True)
 def send_delivery(delivery_id):
     claim = uuid.uuid4()
@@ -116,6 +125,8 @@ def send_delivery(delivery_id):
             headers={"Message-ID": f"<insight-{delivery.id}@{getattr(settings, 'INSIGHTS_MESSAGE_ID_DOMAIN', 'gyanbuddy.invalid')}>"},
         )
         mail.attach_alternative(render_to_string("gyanbuddy_insights/report.html", context), "text/html")
+        pdf = render_pdf(render_to_string("gyanbuddy_insights/report_pdf.html", context))
+        mail.attach(f"gyanbuddy-report-{delivery.role}-{context['batch_id'][:8]}.pdf", pdf, "application/pdf")
     except Exception as exc:
         owned.update(state="blocked", error_code=type(exc).__name__, locked_until=None)
         return

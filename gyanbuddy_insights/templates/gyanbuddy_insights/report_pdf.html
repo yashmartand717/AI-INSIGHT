@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: a4; margin: 1.8cm 1.8cm 2cm 1.8cm;
+  @frame footer { -pdf-frame-content: footer; bottom: 0.8cm; margin-left: 1.8cm; margin-right: 1.8cm; height: 1cm; } }
+body { font-family: Helvetica; font-size: 11pt; color: #172b4d; line-height: 1.45; }
+.banner { background-color: #1d3d8f; color: #ffffff; padding: 14pt 16pt 10pt 16pt; }
+.banner h1 { font-size: 20pt; margin: 0; color: #ffffff; }
+.banner p { font-size: 11pt; margin: 2pt 0 0 0; color: #dbe4ff; }
+.overall { background-color: #eef2ff; padding: 8pt 16pt; margin-top: 8pt; font-size: 12pt; }
+.student { margin-top: 18pt; border-top: 2pt solid #1d3d8f; padding-top: 8pt; }
+.student h2 { font-size: 16pt; margin: 0; }
+.meta { color: #5e6c84; font-size: 10pt; margin: 2pt 0 8pt 0; }
+.score { color: #1d3d8f; font-size: 13pt; font-weight: bold; }
+h3 { font-size: 12pt; color: #1d3d8f; margin: 10pt 0 3pt 0; }
+.headline { font-size: 13pt; color: #172b4d; margin-top: 4pt; }
+p { margin: 0 0 5pt 0; }
+td.label { font-weight: bold; width: 32%; color: #42526e; padding: 5pt 6pt; vertical-align: top; }
+td.value { padding: 5pt 6pt; vertical-align: top; }
+tr.shade td { background-color: #f4f5f7; }
+ul { margin: 0 0 4pt 0; }
+li { margin-bottom: 2pt; }
+.source { color: #7a869a; font-size: 8.5pt; margin-top: 8pt; }
+#footer { color: #7a869a; font-size: 8.5pt; }
+</style></head><body>
+<div class="banner"><h1>GyanBuddy learning reports</h1><p>{{ role|title }} update</p></div>
+{% if role != "parent" %}<div class="overall">Overall score for included students: <strong>{{ average }}%</strong></div>{% endif %}
+{% for item in items %}<div class="student">
+<h2>{{ item.metrics.student_name }}</h2>
+<p class="meta">Class {{ item.metrics.class_name }} {{ item.metrics.section }} &nbsp;|&nbsp; Overall score: <span class="score">{{ item.metrics.overall_accuracy_pct }}%</span></p>
+<h3 class="headline">{{ item.insight.headline }}</h3><p>{{ item.insight.summary }}</p>
+<table>
+<tr class="shade"><td class="label">What to build on</td><td class="value">{{ item.insight.strengths }}</td></tr>
+<tr><td class="label">Learning priority</td><td class="value">{{ item.insight.focus }}</td></tr>
+</table>
+<h3>Suggested actions</h3><ul>{% for action in item.insight.actions %}<li>{{ action }}</li>{% endfor %}</ul>
+{% if item.insight.follow_up %}<h3>How to check progress</h3><p>{{ item.insight.follow_up }}</p>{% endif %}
+{% if item.insight.evidence_note %}<h3>What this report is based on</h3><p>{{ item.insight.evidence_note }}</p>{% endif %}
+<p class="source">{% if item.source == "rules" %}Rule-based analysis{% elif item.source == "openai" %}OpenAI-assisted analysis{% elif item.source == "gemini" %}Gemini-assisted analysis{% else %}AI-assisted analysis{% endif %}</p>
+</div>{% endfor %}
+<div id="footer">Reference: {{ batch_id }} &nbsp;|&nbsp; Page <pdf:pagenumber> of <pdf:pagecount></div>
+</body></html>

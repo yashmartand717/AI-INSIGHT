@@ -81,6 +81,11 @@ class IntegrationTests(TestCase):
             self.assertIn('What this report is based on', message.body)
             self.assertNotIn('No topic has reached', message.body)
             self.assertIn('How to check progress', message.alternatives[0][0])
+            self.assertEqual(len(message.attachments), 1)
+            name, content, mimetype = message.attachments[0]
+            self.assertTrue(name.endswith('.pdf'))
+            self.assertEqual(mimetype, 'application/pdf')
+            self.assertTrue(content.startswith(b'%PDF'))
         parent = next(m for m in mail.outbox if m.to == ['parent-001@example.test'])
         self.assertIn('Asha', parent.body)
         self.assertNotIn('Ravi', parent.body)
